@@ -92,7 +92,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Seedling lamp'),
+        title: const Text('Lamp'),
         actions: [
           IconButton(
             onPressed: () {

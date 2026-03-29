@@ -14,7 +14,6 @@ class SensorCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Icon(
                   Icons.wb_sunny_outlined,
