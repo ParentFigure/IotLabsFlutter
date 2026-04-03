@@ -4,7 +4,6 @@ import 'package:src/features/auth/presentation/login_page.dart';
 import 'package:src/features/auth/presentation/register_page.dart';
 import 'package:src/features/home/presentation/home_page.dart';
 import 'package:src/features/profile/presentation/profile_page.dart';
-import 'package:src/features/schedule/presentation/schedule_page.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -16,12 +15,11 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       initialRoute: LoginPage.routeName,
-      routes: {
-        LoginPage.routeName: (context) => const LoginPage(),
-        RegisterPage.routeName: (context) => const RegisterPage(),
-        HomePage.routeName: (context) => const HomePage(),
-        ProfilePage.routeName: (context) => const ProfilePage(),
-        SchedulePage.routeName: (context) => const SchedulePage(),
+      routes: <String, WidgetBuilder>{
+        LoginPage.routeName: (BuildContext context) => const LoginPage(),
+        RegisterPage.routeName: (BuildContext context) => const RegisterPage(),
+        HomePage.routeName: (BuildContext context) => const HomePage(),
+        ProfilePage.routeName: (BuildContext context) => const ProfilePage(),
       },
     );
   }

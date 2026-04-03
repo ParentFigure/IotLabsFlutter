@@ -2,19 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:src/core/theme/app_colors.dart';
 
 class SensorCard extends StatelessWidget {
-  const SensorCard({super.key});
+  const SensorCard({
+    required this.sensorText,
+    super.key,
+  });
+
+  final String sensorText;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 360;
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool isNarrow = constraints.maxWidth < 360;
 
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
-              children: [
+              children: <Widget>[
                 const Icon(
                   Icons.wb_sunny_outlined,
                   color: AppColors.accent,
@@ -24,16 +29,14 @@ class SensorCard extends StatelessWidget {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: <Widget>[
                       Text(
                         'Light sensor:',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        isNarrow
-                            ? ''
-                            : 'Current brightness:',
+                        isNarrow ? 'Current value' : 'Current brightness:',
                         style: Theme.of(context).textTheme.bodyMedium,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -43,7 +46,7 @@ class SensorCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Dark',
+                  sensorText,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ],

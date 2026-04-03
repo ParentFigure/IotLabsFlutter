@@ -10,12 +10,12 @@ class AppButton extends StatelessWidget {
   });
 
   final String title;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final iconWidget = icon == null
+    final Widget iconWidget = icon == null
         ? const SizedBox.shrink()
         : Icon(icon, size: 20, color: Colors.black);
 
