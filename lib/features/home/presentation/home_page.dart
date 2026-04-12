@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:src/features/auth/data/auth_repository_impl.dart';
 import 'package:src/features/auth/domain/auth_repository.dart';
 import 'package:src/features/auth/domain/user.dart';
 import 'package:src/features/home/presentation/widgets/auto_control_card.dart';
+import 'package:src/features/home/presentation/widgets/broker_card.dart';
 import 'package:src/features/home/presentation/widgets/lamp_status_card.dart';
 import 'package:src/features/home/presentation/widgets/schedule_tile.dart';
 import 'package:src/features/home/presentation/widgets/sensitivity_card.dart';
 import 'package:src/features/home/presentation/widgets/sensor_card.dart';
-import 'package:src/features/lamp/data/lamp_repository_impl.dart';
-import 'package:src/features/lamp/domain/lamp_repository.dart';
-import 'package:src/features/lamp/domain/lamp_state.dart';
 import 'package:src/features/lamp/domain/schedule_entry.dart';
+import 'package:src/features/lamp/presentation/lamp_controller.dart';
 import 'package:src/features/profile/presentation/profile_page.dart';
+import 'package:src/shared/connectivity/network_controller.dart';
 import 'package:src/shared/widgets/app_button.dart';
 import 'package:src/shared/widgets/section_title.dart';
 
@@ -25,74 +26,68 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final LampRepository _lampRepository = LampRepositoryImpl();
   final AuthRepository _authRepository = AuthRepositoryImpl();
-
   User? _user;
-  LampState _lampState = LampState.initial();
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LampController>().initialize();
+      _loadUser();
+    });
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadUser() async {
     final User? currentUser = await _authRepository.getCurrentUser();
-    final LampState lampState = await _lampRepository.getLampState();
-
     if (!mounted) {
       return;
     }
 
     setState(() {
       _user = currentUser;
-      _lampState = lampState;
-      _isLoading = false;
     });
-  }
-
-  Future<void> _saveLampState(LampState newState) async {
-    await _lampRepository.saveLampState(newState);
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _lampState = newState;
-    });
-  }
-
-  String get _sensorText {
-    final double value = _lampState.sensitivity;
-    if (value >= 70) {
-      return 'Dark';
-    }
-    if (value >= 40) {
-      return 'Normal';
-    }
-    return 'Bright';
   }
 
   Future<void> _logOut() async {
-    await _authRepository.logout();
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Log out'),
+          content: const Text('Are you sure you want to leave the app?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('Log out'),
+            ),
+          ],
+        );
+      },
+    );
 
+    if (confirmed != true) {
+      return;
+    }
+
+    await _authRepository.logout();
     if (!mounted) {
       return;
     }
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/login',
-      (Route<dynamic> route) => false,
-    );
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
   }
 
-  List<ScheduleEntry> get _sortedSchedules {
-    final List<ScheduleEntry> items =
-        List<ScheduleEntry>.from(_lampState.schedules);
+  List<ScheduleEntry> _sortedSchedules(List<ScheduleEntry> schedules) {
+    final List<ScheduleEntry> items = List<ScheduleEntry>.from(schedules);
     items.sort(_compareSchedules);
     return items;
   }
@@ -122,7 +117,10 @@ class _HomePageState extends State<HomePage> {
     return '$hour:$minute';
   }
 
-  Future<void> _openScheduleEditor({ScheduleEntry? entry}) async {
+  Future<void> _openScheduleEditor({
+    required LampController controller,
+    ScheduleEntry? entry,
+  }) async {
     final TimeOfDay initialTime = entry == null
         ? const TimeOfDay(hour: 6, minute: 30)
         : _parseTime(entry.time);
@@ -228,7 +226,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     final List<ScheduleEntry> schedules =
-        List<ScheduleEntry>.from(_lampState.schedules);
+        List<ScheduleEntry>.from(controller.state.schedules);
     final int index =
         schedules.indexWhere((ScheduleEntry item) => item.id == result.id);
 
@@ -239,56 +237,66 @@ class _HomePageState extends State<HomePage> {
     }
 
     schedules.sort(_compareSchedules);
-    await _saveLampState(_lampState.copyWith(schedules: schedules));
+    await controller.saveSchedules(schedules);
   }
 
-  Future<void> _deleteSchedule(String id) async {
-    final List<ScheduleEntry> schedules = _lampState.schedules
+  Future<void> _deleteSchedule(LampController controller, String id) async {
+    final List<ScheduleEntry> schedules = controller.state.schedules
         .where((ScheduleEntry item) => item.id != id)
         .toList();
-
-    await _saveLampState(_lampState.copyWith(schedules: schedules));
+    await controller.saveSchedules(schedules);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    final LampController controller = context.watch<LampController>();
+    final bool isOnline = context.watch<NetworkController>().isOnline;
+    final state = controller.state;
+
+    if (controller.isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
+    final String sensorLabel = state.sensorLux < state.sensitivity
+        ? 'Dark'
+        : 'Bright';
+    final List<ScheduleEntry> schedules = _sortedSchedules(state.schedules);
     final double width = MediaQuery.sizeOf(context).width;
     final bool isWide = width >= 760;
 
     final List<Widget> firstColumn = <Widget>[
+      BrokerCard(
+        host: state.broker,
+        port: state.port,
+        topicPrefix: state.topicPrefix,
+        isConnected: controller.isBrokerConnected,
+        isConnecting: controller.isMqttConnecting,
+        onReconnect: controller.connectMqtt,
+      ),
+      const SizedBox(height: 16),
       LampStatusCard(
-        isLampOn: _lampState.isLampOn,
+        isLampOn: state.isLampOn,
         onToggle: () {
-          _saveLampState(
-            _lampState.copyWith(isLampOn: !_lampState.isLampOn),
-          );
+          controller.setManualLamp(!state.isLampOn);
         },
       ),
       const SizedBox(height: 16),
-      SensorCard(sensorText: _sensorText),
+      SensorCard(lux: state.sensorLux, status: sensorLabel),
       const SizedBox(height: 16),
       SensitivityCard(
-        value: _lampState.sensitivity,
-        onChanged: (double value) {
-          _saveLampState(_lampState.copyWith(sensitivity: value));
-        },
+        value: state.sensitivity,
+        onChanged: controller.setSensitivity,
+      ),
+      const SizedBox(height: 16),
+      AutoControlCard(
+        isEnabled: state.autoMode,
+        onChanged: controller.setAutoMode,
       ),
     ];
 
     final List<Widget> secondColumn = <Widget>[
-      AutoControlCard(
-        isEnabled: _lampState.autoMode,
-        onChanged: (bool value) {
-          _saveLampState(_lampState.copyWith(autoMode: value));
-        },
-      ),
-      const SizedBox(height: 24),
       SectionTitle(
         title: 'Weekly schedule',
         subtitle: _user == null
@@ -296,7 +304,27 @@ class _HomePageState extends State<HomePage> {
             : 'Manage weekly lamp actions for ${_user!.email}',
       ),
       const SizedBox(height: 12),
-      if (_sortedSchedules.isEmpty)
+      if (!isOnline)
+        const Card(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Internet is offline. MQTT updates are limited.'),
+          ),
+        ),
+      if (controller.message != null) ...<Widget>[
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.info_outline_rounded),
+            title: Text(controller.message!),
+            trailing: IconButton(
+              onPressed: controller.clearMessage,
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+      if (schedules.isEmpty)
         const Card(
           child: Padding(
             padding: EdgeInsets.all(18),
@@ -304,7 +332,7 @@ class _HomePageState extends State<HomePage> {
           ),
         )
       else
-        ..._sortedSchedules.map(
+        ...schedules.map(
           (ScheduleEntry item) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: ScheduleTile(
@@ -312,10 +340,10 @@ class _HomePageState extends State<HomePage> {
               time: item.time,
               action: item.action,
               onEdit: () {
-                _openScheduleEditor(entry: item);
+                _openScheduleEditor(controller: controller, entry: item);
               },
               onDelete: () {
-                _deleteSchedule(item.id);
+                _deleteSchedule(controller, item.id);
               },
             ),
           ),
@@ -324,7 +352,9 @@ class _HomePageState extends State<HomePage> {
       AppButton(
         title: 'Add schedule',
         icon: Icons.add_rounded,
-        onPressed: _openScheduleEditor,
+        onPressed: () {
+          _openScheduleEditor(controller: controller);
+        },
       ),
     ];
 
@@ -363,7 +393,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             onPressed: () async {
               await Navigator.pushNamed(context, ProfilePage.routeName);
-              await _loadData();
+              await _loadUser();
             },
             icon: const Icon(Icons.person_outline_rounded),
           ),

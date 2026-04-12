@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:src/features/auth/data/auth_repository_impl.dart';
 import 'package:src/features/auth/domain/auth_repository.dart';
 import 'package:src/features/auth/domain/validators.dart';
 import 'package:src/features/auth/presentation/register_page.dart';
 import 'package:src/features/home/presentation/home_page.dart';
+import 'package:src/shared/connectivity/network_controller.dart';
 import 'package:src/shared/widgets/app_button.dart';
 import 'package:src/shared/widgets/app_text_field.dart';
 
@@ -34,6 +36,16 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signIn() async {
     final FormState? form = _formKey.currentState;
     if (form == null || !form.validate()) {
+      return;
+    }
+
+    final bool isOnline = context.read<NetworkController>().isOnline;
+    if (!isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Internet is required for manual login.'),
+        ),
+      );
       return;
     }
 
@@ -68,6 +80,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isOnline = context.watch<NetworkController>().isOnline;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -86,12 +100,22 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'ESP32 UI for lighting lamp with a light sensor and '
-                  'user schedule.',
+                  'ESP32 UI for a lamp, MQTT telemetry and weekly schedules.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 16),
+                if (!isOnline)
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        'No Internet connection. Auto-login can still work, '
+                        'but manual login is blocked.',
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 24),
                 Form(
                   key: _formKey,
                   child: Column(

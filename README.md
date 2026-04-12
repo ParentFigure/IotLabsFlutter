@@ -1,20 +1,66 @@
-# my_project
+# Smart Lamp IoT Flutter Lab 4
 
-A new Flutter project.
+Готовий проєкт для ЛР2–ЛР4:
+- 4 екрани: splash, login, register, home, profile;
+- локальна реєстрація, логін, автологін, logout з підтвердженням;
+- перевірка мережі через `connectivity_plus`;
+- MQTT підключення до брокера, підписка на дані ESP32/VEML7700;
+- ручне керування лампою, авто-режим, чутливість, weekly schedule;
+- локальне збереження профілю, сесії та стану лампи;
+- архітектура: `data / domain / presentation` + `Provider`.
 
-## Getting Started
+## Як запустити
 
-This project is a starting point for a Flutter application.
+1. Розпакуйте архів.
+2. Відкрийте папку `src` у VS Code або Android Studio.
+3. Виконайте:
+   ```bash
+   flutter pub get
+   flutter run
+   ```
+4. Для Android-емулятора або телефона переконайтесь, що Інтернет увімкнений.
 
-A few resources to get you started if this is your first Flutter project:
+## MQTT налаштування за замовчуванням
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+У застосунку використано такі дефолтні параметри:
+- broker: `broker.emqx.io`
+- port: `1883`
+- topic prefix: `smartlamp/demo`
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Топіки:
+- `smartlamp/demo/telemetry/lux`
+- `smartlamp/demo/telemetry/state`
+- `smartlamp/demo/command/manual`
+- `smartlamp/demo/command/mode`
+- `smartlamp/demo/command/threshold`
+- `smartlamp/demo/command/schedule`
 
-Task for laboratory work #1:
-https://github.com/DenysDoskochynskyi/IoT-flutter/blob/lab-1/README.md
+## Як перевірити без ESP32
+
+Можна підключитися через MQTT Explorer або будь-який web client і публікувати:
+- в `smartlamp/demo/telemetry/lux` число, наприклад `84.5`
+- в `smartlamp/demo/telemetry/state` JSON, наприклад:
+  ```json
+  {"lampOn": true, "autoMode": true, "threshold": 90}
+  ```
+
+## ESP32 + VEML7700
+
+У папці `esp32_example` є приклад скетчу для ESP32:
+- читає VEML7700;
+- автоматично вмикає лампу при низькій освітленості;
+- слухає MQTT-команди з Flutter;
+- публікує lux та поточний стан.
+
+## Що показувати на захисті
+
+- реєстрація і валідація;
+- логін;
+- автологін;
+- вхід без мережі при збереженій сесії;
+- повідомлення про втрату Інтернету;
+- MQTT telemetry update;
+- ручне керування лампою;
+- зміна чутливості;
+- додавання/редагування/видалення розкладу;
+- logout з confirm dialog.

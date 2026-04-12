@@ -8,7 +8,6 @@ final class AppTheme {
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.background,
       elevation: 0,
-      centerTitle: false,
     ),
     colorScheme: const ColorScheme.dark(
       primary: AppColors.accent,
