@@ -1,0 +1,42 @@
+{
+  "users": [
+    {
+      "email": "martamatviyenko@gmail.com",
+      "password": "123456",
+      "name": "MartaMatv"
+    }
+  ],
+  "sessions": {
+    "e3f167b8611f45ea83b8c8bd866860b5": "martamatviyenko@gmail.com",
+    "c3bb13ef83ae4988a0173773166d4370": "martamatviyenko@gmail.com"
+  },
+  "lamp_state": {
+    "isLampOn": true,
+    "autoMode": true,
+    "sensitivity": 80.0,
+    "sensorLux": 21.66,
+    "broker": "broker.emqx.io",
+    "port": 1883,
+    "topicPrefix": "smartlamp/demo",
+    "schedules": [
+      {
+        "id": "1776270041793",
+        "day": "Mon",
+        "time": "06:30",
+        "action": "ON"
+      },
+      {
+        "id": "1776269859385",
+        "day": "Mon",
+        "time": "22:30",
+        "action": "ON"
+      },
+      {
+        "id": "3",
+        "day": "Fri",
+        "time": "18:40",
+        "action": "ON"
+      }
+    ]
+  }
+}

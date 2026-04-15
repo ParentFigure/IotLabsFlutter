@@ -42,7 +42,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadData() async {
-    final User? user = await _authRepository.getCurrentUser();
+    final User? user = await _authRepository.syncCurrentUser();
 
     if (!mounted) {
       return;

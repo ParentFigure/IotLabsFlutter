@@ -4,13 +4,12 @@ class AppTextField extends StatelessWidget {
   const AppTextField({
     required this.controller,
     required this.labelText,
-    required this.validator, 
+    required this.validator,
     super.key,
     this.obscureText = false,
     this.keyboardType,
     this.textInputAction,
     this.prefixIcon,
-    
   });
 
   final TextEditingController controller;

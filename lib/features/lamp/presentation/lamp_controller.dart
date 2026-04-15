@@ -40,8 +40,11 @@ class LampController extends ChangeNotifier {
     }
 
     _initialized = true;
-    _state = await _lampRepository.getLampState();
+    _state = await _lampRepository.syncLampState();
     _isLoading = false;
+    _message = _networkController.isOnline
+        ? 'Remote sync finished. Latest state is cached locally.'
+        : 'Offline mode: cached state restored from local storage.';
     notifyListeners();
     await connectMqtt();
   }
@@ -54,7 +57,6 @@ class LampController extends ChangeNotifier {
     }
 
     _isMqttConnecting = true;
-    _message = null;
     notifyListeners();
 
     try {
@@ -87,15 +89,8 @@ class LampController extends ChangeNotifier {
         return;
       }
 
-      final String type = decoded['type'] as String? ?? '';
-      if (type == 'system') {
-        notifyListeners();
-        return;
-      }
-
       final String topic = decoded['topic'] as String? ?? '';
       final String payload = decoded['payload'] as String? ?? '';
-
       if (topic.endsWith('/telemetry/lux')) {
         final double lux = double.tryParse(payload) ?? _state.sensorLux;
         _updateState(_state.copyWith(sensorLux: lux));

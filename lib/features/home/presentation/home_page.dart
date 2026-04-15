@@ -27,19 +27,22 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final AuthRepository _authRepository = AuthRepositoryImpl();
+  late final Future<void> _loadFuture;
   User? _user;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LampController>().initialize();
-      _loadUser();
-    });
+    _loadFuture = _loadHomeData();
+  }
+
+  Future<void> _loadHomeData() async {
+    await context.read<LampController>().initialize();
+    await _loadUser();
   }
 
   Future<void> _loadUser() async {
-    final User? currentUser = await _authRepository.getCurrentUser();
+    final User? currentUser = await _authRepository.syncCurrentUser();
     if (!mounted) {
       return;
     }
@@ -376,39 +379,50 @@ class _HomePageState extends State<HomePage> {
             ],
           );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lamp'),
-        actions: <Widget>[
-          if (_user != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Center(
-                child: Text(
-                  _user!.email,
-                  style: Theme.of(context).textTheme.bodyMedium,
+    return FutureBuilder<void>(
+      future: _loadFuture,
+      builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Lamp'),
+            actions: <Widget>[
+              if (_user != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Center(
+                    child: Text(
+                      _user!.email,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
                 ),
+              IconButton(
+                onPressed: () async {
+                  await Navigator.pushNamed(context, ProfilePage.routeName);
+                  await _loadUser();
+                },
+                icon: const Icon(Icons.person_outline_rounded),
               ),
+              IconButton(
+                onPressed: _logOut,
+                icon: const Icon(Icons.logout_rounded),
+              ),
+            ],
+          ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: content,
             ),
-          IconButton(
-            onPressed: () async {
-              await Navigator.pushNamed(context, ProfilePage.routeName);
-              await _loadUser();
-            },
-            icon: const Icon(Icons.person_outline_rounded),
           ),
-          IconButton(
-            onPressed: _logOut,
-            icon: const Icon(Icons.logout_rounded),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: content,
-        ),
-      ),
+        );
+      },
     );
   }
 }
