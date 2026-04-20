@@ -15,9 +15,7 @@ final class AppTheme {
     ),
     cardTheme: CardThemeData(
       color: AppColors.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       margin: EdgeInsets.zero,
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -37,10 +35,7 @@ final class AppTheme {
         borderRadius: BorderRadius.circular(28),
         borderSide: const BorderSide(color: AppColors.accent),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 24,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
     ),
     sliderTheme: const SliderThemeData(
       activeTrackColor: AppColors.accent,
@@ -79,14 +74,8 @@ final class AppTheme {
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       ),
-      bodyLarge: TextStyle(
-        fontSize: 18,
-        color: AppColors.textSecondary,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 16,
-        color: AppColors.textSecondary,
-      ),
+      bodyLarge: TextStyle(fontSize: 18, color: AppColors.textSecondary),
+      bodyMedium: TextStyle(fontSize: 16, color: AppColors.textSecondary),
     ),
   );
 }

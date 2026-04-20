@@ -19,8 +19,9 @@ class ScheduleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color actionColor =
-        action == 'ON' ? AppColors.success : AppColors.textSecondary;
+    final Color actionColor = action == 'ON'
+        ? AppColors.success
+        : AppColors.textSecondary;
 
     return Card(
       child: Padding(
@@ -33,15 +34,9 @@ class ScheduleTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(
-                    day,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
+                  Text(day, style: Theme.of(context).textTheme.bodyMedium),
                   const SizedBox(height: 4),
-                  Text(
-                    time,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+                  Text(time, style: Theme.of(context).textTheme.titleLarge),
                 ],
               ),
             ),

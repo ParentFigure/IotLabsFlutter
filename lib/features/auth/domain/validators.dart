@@ -49,10 +49,7 @@ final class Validators {
     return null;
   }
 
-  static String? validateConfirmPassword(
-    String? value,
-    String password,
-  ) {
+  static String? validateConfirmPassword(String? value, String password) {
     final normalized = value ?? '';
 
     if (normalized.isEmpty) {

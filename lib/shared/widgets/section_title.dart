@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SectionTitle extends StatelessWidget {
-  const SectionTitle({
-    required this.title,
-    required this.subtitle,
-    super.key,
-  });
+  const SectionTitle({required this.title, required this.subtitle, super.key});
 
   final String title;
   final String subtitle;
@@ -15,15 +11,9 @@ class SectionTitle extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
+        Text(title, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 8),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
       ],
     );
   }

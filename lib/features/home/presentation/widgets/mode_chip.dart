@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:src/core/theme/app_colors.dart';
 
 class ModeChip extends StatelessWidget {
-  const ModeChip({
-    required this.label,
-    required this.isSelected,
-    super.key,
-  });
+  const ModeChip({required this.label, required this.isSelected, super.key});
 
   final String label;
   final bool isSelected;
