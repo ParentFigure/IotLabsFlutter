@@ -45,16 +45,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<User?> getRegisteredUser() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? rawUser = prefs.getString(_userKey);
-    if (rawUser == null) {
-      return null;
-    }
-
+    if (rawUser == null) return null;
     final Object? decoded = jsonDecode(rawUser);
-    if (decoded is! Map<String, dynamic>) {
-      return null;
-    }
-
-    return User.fromJson(decoded);
+    return decoded is Map<String, dynamic> ? User.fromJson(decoded) : null;
   }
 
   @override
@@ -62,10 +55,9 @@ class AuthRepositoryImpl implements AuthRepository {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? currentEmail = prefs.getString(_sessionKey);
     final User? user = await getRegisteredUser();
-    if (currentEmail == null || user == null || user.email != currentEmail) {
-      return null;
-    }
-    return user;
+    return currentEmail == null || user == null || user.email != currentEmail
+        ? null
+        : user;
   }
 
   @override
@@ -101,26 +93,22 @@ class AuthRepositoryImpl implements AuthRepository {
     await prefs.remove(_tokenKey);
   }
 
-  Future<void> _saveSession(
-    User user,
-    Map<String, dynamic> response,
-  ) async {
+  Future<void> _saveSession(User user, Map<String, dynamic> response) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, jsonEncode(user.toJson()));
     await prefs.setString(_sessionKey, user.email);
-    final String? token = response['token'] as String?;
+    final String? token =
+        response['access_token'] as String? ?? response['token'] as String?;
     if (token != null && token.isNotEmpty) {
       await prefs.setString(_tokenKey, token);
     }
   }
 
-  User _userFromResponse(
-    Map<String, dynamic> response, {
-    User? fallback,
-  }) {
+  User _userFromResponse(Map<String, dynamic> response, {User? fallback}) {
     final Object? rawUser = response['user'];
-    if (rawUser is Map<String, dynamic>) {
-      return User.fromJson(rawUser);
+    if (rawUser is Map<String, dynamic>) return User.fromJson(rawUser);
+    if (response.containsKey('email') && response.containsKey('name')) {
+      return User.fromJson(response);
     }
     return fallback ?? const User(email: '', name: '', password: '');
   }
