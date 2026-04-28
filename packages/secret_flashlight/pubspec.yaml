@@ -1,0 +1,19 @@
+name: secret_flashlight
+description: A small Flutter plugin for controlling the Android camera torch.
+version: 0.0.1
+publish_to: 'none'
+
+environment:
+  sdk: ^3.11.0
+  flutter: '>=3.35.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.example.secret_flashlight
+        pluginClass: SecretFlashlightPlugin
