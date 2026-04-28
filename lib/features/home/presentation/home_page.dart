@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:secret_flashlight/secret_flashlight.dart';
 import 'package:src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:src/features/auth/presentation/login_page.dart';
 import 'package:src/features/home/presentation/widgets/home_dashboard.dart';
@@ -19,7 +21,10 @@ class HomePage extends StatelessWidget {
     final lamp = context.watch<LampController>();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Smart Lamp Dashboard'),
+        title: GestureDetector(
+          onLongPress: () => _toggleSecretFlashlight(context),
+          child: const Text('Smart Lamp Dashboard'),
+        ),
         actions: <Widget>[
           IconButton(
             tooltip: 'Log out',
@@ -36,6 +41,50 @@ class HomePage extends StatelessWidget {
                 child: HomeDashboard(),
               ),
             ),
+    );
+  }
+
+  Future<void> _toggleSecretFlashlight(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final bool isEnabled = await SecretFlashlight.onLight();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            isEnabled
+                ? 'Secret flashlight is on.'
+                : 'Secret flashlight is off.',
+          ),
+        ),
+      );
+    } on UnsupportedError {
+      if (!context.mounted) {
+        return;
+      }
+      await _showUnsupportedDialog(context);
+    } on PlatformException catch (exception) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(exception.message ?? 'Flashlight failed.')),
+      );
+    }
+  }
+
+  Future<void> _showUnsupportedDialog(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Unsupported platform'),
+        content: const Text(
+          'Flashlight control is supported only on Android devices.',
+        ),
+        actions: <Widget>[
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 
