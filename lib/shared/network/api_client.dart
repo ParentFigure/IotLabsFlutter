@@ -14,17 +14,11 @@ class ApiClient {
     return _send('GET', path);
   }
 
-  Future<Map<String, dynamic>> post(
-    String path, {
-    Map<String, dynamic>? body,
-  }) {
+  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? body}) {
     return _send('POST', path, body: body);
   }
 
-  Future<Map<String, dynamic>> put(
-    String path, {
-    Map<String, dynamic>? body,
-  }) {
+  Future<Map<String, dynamic>> put(String path, {Map<String, dynamic>? body}) {
     return _send('PUT', path, body: body);
   }
 
@@ -49,18 +43,10 @@ class ApiClient {
         response = await _client.get(uri, headers: headers);
         break;
       case 'POST':
-        response = await _client.post(
-          uri,
-          headers: headers,
-          body: encodedBody,
-        );
+        response = await _client.post(uri, headers: headers, body: encodedBody);
         break;
       case 'PUT':
-        response = await _client.put(
-          uri,
-          headers: headers,
-          body: encodedBody,
-        );
+        response = await _client.put(uri, headers: headers, body: encodedBody);
         break;
       default:
         throw UnsupportedError('HTTP method $method is not supported.');

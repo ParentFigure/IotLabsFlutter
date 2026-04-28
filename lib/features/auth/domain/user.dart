@@ -1,19 +1,11 @@
 class User {
-  const User({
-    required this.email,
-    required this.name,
-    required this.password,
-  });
+  const User({required this.email, required this.name, required this.password});
 
   final String email;
   final String name;
   final String password;
 
-  User copyWith({
-    String? email,
-    String? name,
-    String? password,
-  }) {
+  User copyWith({String? email, String? name, String? password}) {
     return User(
       email: email ?? this.email,
       name: name ?? this.name,

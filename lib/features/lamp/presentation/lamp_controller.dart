@@ -2,11 +2,15 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:src/features/home/presentation/helpers/schedule_utils.dart';
 import 'package:src/features/lamp/domain/lamp_repository.dart';
 import 'package:src/features/lamp/domain/lamp_state.dart';
 import 'package:src/features/lamp/domain/mqtt_service.dart';
 import 'package:src/features/lamp/domain/schedule_entry.dart';
 import 'package:src/shared/connectivity/network_controller.dart';
+
+part 'lamp_controller_actions.dart';
+part 'lamp_controller_updates.dart';
 
 class LampController extends ChangeNotifier {
   LampController({
@@ -22,11 +26,11 @@ class LampController extends ChangeNotifier {
   final NetworkController _networkController;
 
   LampState _state = LampState.initial();
+  StreamSubscription<String>? _mqttSubscription;
+  bool _initialized = false;
   bool _isLoading = true;
   bool _isMqttConnecting = false;
   String? _message;
-  StreamSubscription<String>? _mqttSubscription;
-  bool _initialized = false;
 
   LampState get state => _state;
   bool get isLoading => _isLoading;
@@ -34,11 +38,12 @@ class LampController extends ChangeNotifier {
   bool get isBrokerConnected => _mqttService.isConnected;
   String? get message => _message;
 
+  void _emit() => notifyListeners();
+
   Future<void> initialize() async {
     if (_initialized) {
       return;
     }
-
     _initialized = true;
     _state = await _lampRepository.syncLampState();
     _isLoading = false;
@@ -51,8 +56,7 @@ class LampController extends ChangeNotifier {
 
   Future<void> connectMqtt() async {
     if (!_networkController.isOnline) {
-      _message = 'No Internet connection. MQTT is unavailable.';
-      notifyListeners();
+      _setMessage('No Internet connection. MQTT is unavailable.');
       return;
     }
 
@@ -75,106 +79,24 @@ class LampController extends ChangeNotifier {
       await _mqttSubscription?.cancel();
       _mqttSubscription = _mqttService.messages.listen(_handleMessage);
     } catch (error) {
-      _message = 'MQTT connection failed: $error';
+      _setMessage('MQTT connection failed: $error');
     }
 
     _isMqttConnecting = false;
     notifyListeners();
   }
 
-  void _handleMessage(String rawMessage) {
-    try {
-      final Object? decoded = jsonDecode(rawMessage);
-      if (decoded is! Map<String, dynamic>) {
-        return;
-      }
-
-      final String topic = decoded['topic'] as String? ?? '';
-      final String payload = decoded['payload'] as String? ?? '';
-      if (topic.endsWith('/telemetry/lux')) {
-        final double lux = double.tryParse(payload) ?? _state.sensorLux;
-        _updateState(_state.copyWith(sensorLux: lux));
-        return;
-      }
-
-      if (topic.endsWith('/telemetry/state')) {
-        final Object? stateJson = jsonDecode(payload);
-        if (stateJson is! Map<String, dynamic>) {
-          return;
-        }
-
-        _updateState(
-          _state.copyWith(
-            isLampOn: stateJson['lampOn'] as bool? ?? _state.isLampOn,
-            autoMode: stateJson['autoMode'] as bool? ?? _state.autoMode,
-            sensitivity:
-                (stateJson['threshold'] as num?)?.toDouble() ??
-                _state.sensitivity,
-          ),
-        );
-      }
-    } catch (error) {
-      _message = 'MQTT parse error: $error';
-      notifyListeners();
-    }
-  }
-
-  Future<void> setManualLamp(bool value) async {
-    await _updateState(_state.copyWith(isLampOn: value));
-    await _mqttService.publish(
-      topic: _state.topic('command/manual'),
-      payload: jsonEncode(<String, dynamic>{'lampOn': value}),
-    );
-  }
-
-  Future<void> setAutoMode(bool value) async {
-    await _updateState(_state.copyWith(autoMode: value));
-    await _mqttService.publish(
-      topic: _state.topic('command/mode'),
-      payload: jsonEncode(<String, dynamic>{'autoMode': value}),
-    );
-  }
-
-  Future<void> setSensitivity(double value) async {
-    await _updateState(_state.copyWith(sensitivity: value));
-    await _mqttService.publish(
-      topic: _state.topic('command/threshold'),
-      payload: jsonEncode(<String, dynamic>{'threshold': value.round()}),
-    );
-  }
-
-  Future<void> saveSchedules(List<ScheduleEntry> schedules) async {
-    await _updateState(_state.copyWith(schedules: schedules));
-    await _mqttService.publish(
-      topic: _state.topic('command/schedule'),
-      payload: jsonEncode(
-        schedules.map((ScheduleEntry item) => item.toJson()).toList(),
-      ),
-    );
-  }
-
-  Future<void> updateBroker({
-    required String broker,
-    required int port,
-    required String topicPrefix,
-  }) async {
-    await _updateState(
-      _state.copyWith(broker: broker, port: port, topicPrefix: topicPrefix),
-    );
-    await connectMqtt();
-  }
-
   Future<void> _updateState(LampState newState) async {
     _state = newState;
     await _lampRepository.saveLampState(newState);
-    notifyListeners();
+    _emit();
   }
 
-  Future<void> disconnect() => _mqttService.disconnect();
+  void clearMessage() => _setMessage(null);
 
-  void clearMessage() {
-    _message = null;
-    notifyListeners();
+  void _setMessage(String? value) {
+    _message = value;
+    _emit();
   }
 
   @override

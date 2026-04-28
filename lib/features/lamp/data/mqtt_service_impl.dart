@@ -10,7 +10,7 @@ class MqttServiceImpl implements MqttService {
       StreamController<String>.broadcast();
   MqttServerClient? _client;
   StreamSubscription<List<MqttReceivedMessage<MqttMessage>>>?
-      _updatesSubscription;
+  _updatesSubscription;
   MqttTopics? _topics;
 
   @override
@@ -28,49 +28,55 @@ class MqttServiceImpl implements MqttService {
   }) async {
     await disconnect();
     _topics = topics;
+    final MqttServerClient client = _buildClient(server, port);
+    _client = client;
+    try {
+      await client.connect();
+      _ensureConnected(client);
+      _subscribe(client, topics);
+      await _updatesSubscription?.cancel();
+      _updatesSubscription = client.updates?.listen(_handleUpdates);
+    } catch (_) {
+      await disconnect();
+      rethrow;
+    }
+  }
 
+  MqttServerClient _buildClient(String server, int port) {
     final String clientId =
         'flutter_smart_lamp_${DateTime.now().millisecondsSinceEpoch}';
-
-    final MqttServerClient client = MqttServerClient(server, clientId)
-      ..port = port
-      ..keepAlivePeriod = 20
-      ..autoReconnect = true
-      ..resubscribeOnAutoReconnect = true
-      ..logging(on: false);
-
-    client.onConnected = _onConnected;
-    client.onDisconnected = _onDisconnected;
-    client.onAutoReconnect = _onAutoReconnect;
-    client.onAutoReconnected = _onAutoReconnected;
-    client.connectionMessage = MqttConnectMessage()
+    final MqttServerClient client = MqttServerClient(server, clientId);
+    final MqttConnectMessage message = MqttConnectMessage()
         .withClientIdentifier(clientId)
         .startClean()
         .withWillQos(MqttQos.atMostOnce);
 
-    _client = client;
+    client.port = port;
+    client.keepAlivePeriod = 20;
+    client.autoReconnect = true;
+    client.resubscribeOnAutoReconnect = true;
+    client.logging(on: false);
+    client.onConnected = () => _pushSystem('connected');
+    client.onDisconnected = () => _pushSystem('disconnected');
+    client.onAutoReconnect = () => _pushSystem('reconnecting');
+    client.onAutoReconnected = _onAutoReconnected;
+    client.connectionMessage = message;
+    return client;
+  }
 
-    try {
-      await client.connect();
-    } catch (error) {
-      client.disconnect();
-      _client = null;
-      rethrow;
-    }
-
+  void _ensureConnected(MqttServerClient client) {
     final status = client.connectionStatus;
-    if (status?.state != MqttConnectionState.connected) {
-      final String reason = status?.returnCode.toString() ?? 'unknown error';
-      client.disconnect();
-      _client = null;
-      throw Exception('MQTT connect failed: $reason');
+    if (status?.state == MqttConnectionState.connected) {
+      return;
     }
+    throw Exception(
+      'MQTT connect failed: ${status?.returnCode ?? 'unknown error'}',
+    );
+  }
 
+  void _subscribe(MqttServerClient client, MqttTopics topics) {
     client.subscribe(topics.luxTopic, MqttQos.atMostOnce);
     client.subscribe(topics.stateTopic, MqttQos.atMostOnce);
-
-    await _updatesSubscription?.cancel();
-    _updatesSubscription = client.updates?.listen(_handleUpdates);
   }
 
   void _handleUpdates(List<MqttReceivedMessage<MqttMessage>> messages) {
@@ -80,67 +86,27 @@ class MqttServiceImpl implements MqttService {
       final String payload = MqttPublishPayload.bytesToStringAsString(
         publishMessage.payload.message,
       );
-
       _messages.add(
-        jsonEncode(
-          <String, String>{
-            'topic': message.topic,
-            'payload': payload,
-          },
-        ),
+        jsonEncode(<String, String>{
+          'topic': message.topic,
+          'payload': payload,
+        }),
       );
     }
-  }
-
-  void _onConnected() {
-    _messages.add(
-      jsonEncode(
-        <String, String>{
-          'type': 'system',
-          'value': 'connected',
-        },
-      ),
-    );
-  }
-
-  void _onDisconnected() {
-    _messages.add(
-      jsonEncode(
-        <String, String>{
-          'type': 'system',
-          'value': 'disconnected',
-        },
-      ),
-    );
-  }
-
-  void _onAutoReconnect() {
-    _messages.add(
-      jsonEncode(
-        <String, String>{
-          'type': 'system',
-          'value': 'reconnecting',
-        },
-      ),
-    );
   }
 
   void _onAutoReconnected() {
     final MqttServerClient? client = _client;
     final MqttTopics? topics = _topics;
-
     if (client != null && topics != null) {
-      client.subscribe(topics.luxTopic, MqttQos.atMostOnce);
-      client.subscribe(topics.stateTopic, MqttQos.atMostOnce);
+      _subscribe(client, topics);
     }
+    _pushSystem('reconnected');
+  }
 
+  void _pushSystem(String value) {
     _messages.add(
-      jsonEncode(
-        <String, String>{
-          'type': 'system',
-          'value': 'reconnected',
-        },
-      ),
+      jsonEncode(<String, String>{'type': 'system', 'value': value}),
     );
   }
 
@@ -150,10 +116,8 @@ class MqttServiceImpl implements MqttService {
     if (client == null || !isConnected) {
       return;
     }
-
     final MqttClientPayloadBuilder builder = MqttClientPayloadBuilder()
       ..addString(payload);
-
     client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
   }
 

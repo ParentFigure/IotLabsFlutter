@@ -49,9 +49,10 @@ class LampRepositoryImpl implements LampRepository {
   Future<void> saveLampState(LampState state) async {
     await _saveLocal(state);
     try {
-      await _client.put('/lamp/state', body: <String, dynamic>{
-        'lampState': state.toJson(),
-      });
+      await _client.put(
+        '/lamp/state',
+        body: <String, dynamic>{'lampState': state.toJson()},
+      );
     } catch (_) {}
   }
 

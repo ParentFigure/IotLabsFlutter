@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:src/core/theme/app_colors.dart';
 
 class SensorCard extends StatelessWidget {
-  const SensorCard({
-    required this.lux,
-    required this.status,
-    super.key,
-  });
+  const SensorCard({required this.lux, required this.status, super.key});
 
   final double lux;
   final String status;

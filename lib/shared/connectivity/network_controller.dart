@@ -14,8 +14,8 @@ class NetworkController extends ChangeNotifier {
   bool get isOnline => _isOnline;
 
   Future<void> initialize() async {
-    final List<ConnectivityResult> results =
-        await _connectivity.checkConnectivity();
+    final List<ConnectivityResult> results = await _connectivity
+        .checkConnectivity();
     _setStatus(results);
 
     await _subscription?.cancel();
